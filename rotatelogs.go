@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lestrrat-go/file-rotatelogs/internal/fileutil"
+	"github.com/caozhiyi/file-rotatelogs/internal/fileutil"
 	strftime "github.com/lestrrat-go/strftime"
 	"github.com/pkg/errors"
 )
@@ -369,6 +369,11 @@ func (rl *RotateLogs) rotateNolock(filename string) error {
 	}()
 
 	return nil
+}
+
+type extendFileInfo struct {
+	os.FileInfo
+	path string
 }
 
 func (rl *RotateLogs) sortFileNameByTime(names []string) []string {
