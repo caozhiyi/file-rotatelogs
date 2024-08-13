@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -314,6 +315,8 @@ func (rl *RotateLogs) rotateNolock(filename string) error {
 		return err
 	}
 
+	matches = rl.sortFileNameByTime(matches)
+
 	cutoff := rl.clock.Now().Add(-1 * rl.maxAge)
 
 	// the linter tells me to pre allocate this...
@@ -366,6 +369,30 @@ func (rl *RotateLogs) rotateNolock(filename string) error {
 	}()
 
 	return nil
+}
+
+func (rl *RotateLogs) sortFileNameByTime(names []string) []string {
+	fileInfos := make([]extendFileInfo, 0, len(names))
+	for _, path := range names {
+		// Ignore lock files
+		if strings.HasSuffix(path, "_lock") || strings.HasSuffix(path, "_symlink") {
+			continue
+		}
+
+		fl, err := os.Lstat(path)
+		if err != nil {
+			continue
+		}
+		fileInfos = append(fileInfos, extendFileInfo{fl, path})
+	}
+	sort.Slice(fileInfos, func(i, j int) bool {
+		return fileInfos[i].ModTime().Before(fileInfos[j].ModTime())
+	})
+	names = make([]string, 0, len(fileInfos))
+	for _, fl := range fileInfos {
+		names = append(names, fl.path)
+	}
+	return names
 }
 
 // Close satisfies the io.Closer interface. You must
